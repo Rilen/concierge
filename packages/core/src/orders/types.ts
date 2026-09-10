@@ -1,4 +1,4 @@
-import { OrderStatus, OrderType, PaymentMethod } from "./calculations";
+import { OrderStatus, OrderType, PaymentMethod } from "./calculations.js";
 
 export interface OrderItemOptionSnapshot {
   id: string;

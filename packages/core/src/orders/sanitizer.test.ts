@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { sanitizePublicOrder } from "./sanitizer";
+import { sanitizePublicOrder } from "./sanitizer.js";
 
 describe("Public Order Projection Sanitizer", () => {
   const mockDbOrder = {

@@ -8,7 +8,7 @@ import {
   calculatePlatformFee,
   calculateLoyaltyPoints,
   canTransitionStatus,
-} from "./calculations";
+} from "./calculations.js";
 
 describe("Domain Order Calculations", () => {
   describe("calculateItemSubtotal", () => {

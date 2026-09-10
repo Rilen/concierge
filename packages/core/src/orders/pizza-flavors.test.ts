@@ -2,9 +2,9 @@ import { describe, it, expect } from "vitest";
 import {
   validateProductOptionSelections,
   DomainProduct,
-} from "./validation";
-import { calculateItemSubtotal } from "./calculations";
-import { configurePizzaFlavorsSchema } from "./validators";
+} from "./validation.js";
+import { calculateItemSubtotal } from "./calculations.js";
+import { configurePizzaFlavorsSchema } from "./validators.js";
 
 describe("Pizza 1 a 4 Sabores — Validação e Regras de Negócio", () => {
   const restaurantId = "rest_pizzaria_001";

@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   validateProductOptionSelections,
   DomainProduct,
-} from "./validation";
+} from "./validation.js";
 
 describe("Server-Side Product Options Validation", () => {
   const restaurantA = "rest_tenant_aaa";

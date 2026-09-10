@@ -1,3 +1,5 @@
+import { calculateItemSubtotal } from "./calculations.js";
+
 export interface DomainProductOption {
   id: string;
   name: string;
@@ -128,5 +130,115 @@ export function validateProductOptionSelections(
   return {
     isValid: true,
     verifiedOptions: allVerified,
+  };
+}
+
+/**
+ * Authoritative server-side order validation.
+ *
+ * Validates the full order structure against the Core domain:
+ * - Every item must reference a product that belongs to the restaurant
+ * - Every selected option must pass tenant + group rules (minSelect/maxSelect/required)
+ * - Item subtotals are computed by the Core calculator (the LLM NEVER does math)
+ */
+export interface OrderItemInput {
+  productId: string;
+  quantity: number;
+  selectedOptionIds: string[];
+  notes?: string | null;
+}
+
+export interface VerifiedOrderItem {
+  productId: string;
+  productName: string;
+  unitPrice: number;
+  quantity: number;
+  subtotal: number;
+  notes?: string | null;
+  options: VerifiedOptionResult[];
+}
+
+export interface OrderValidationResult {
+  isValid: boolean;
+  error?: string;
+  items: VerifiedOrderItem[];
+  subtotal: number;
+}
+
+export function validateOrder(
+  products: (DomainProduct & { price: string | number })[],
+  items: OrderItemInput[],
+  restaurantId: string
+): OrderValidationResult {
+  const productMap = new Map(products.map((p) => [p.id, p]));
+  const verifiedItems: VerifiedOrderItem[] = [];
+
+  for (const item of items) {
+    const product = productMap.get(item.productId);
+
+    if (!product) {
+      return {
+        isValid: false,
+        error: `Produto '${item.productId}' não encontrado no cardápio.`,
+        items: [],
+        subtotal: 0,
+      };
+    }
+
+    if (!product.active) {
+      return {
+        isValid: false,
+        error: `Produto '${product.name}' está inativo ou indisponível.`,
+        items: [],
+        subtotal: 0,
+      };
+    }
+
+    const optionValidation = validateProductOptionSelections(
+      product,
+      item.selectedOptionIds,
+      restaurantId
+    );
+
+    if (!optionValidation.isValid) {
+      return {
+        isValid: false,
+        error: optionValidation.error,
+        items: [],
+        subtotal: 0,
+      };
+    }
+
+    const optionsSum = optionValidation.verifiedOptions.reduce(
+      (acc, opt) => acc + opt.price,
+      0
+    );
+    const itemUnitPrice = Number(product.price);
+    const itemSubtotal = calculateItemSubtotal(
+      itemUnitPrice,
+      item.quantity,
+      optionsSum
+    );
+
+    verifiedItems.push({
+      productId: product.id,
+      productName: product.name,
+      unitPrice: itemUnitPrice,
+      quantity: item.quantity,
+      subtotal: itemSubtotal,
+      notes: item.notes ?? null,
+      options: optionValidation.verifiedOptions,
+    });
+  }
+
+  const subtotal = verifiedItems.reduce(
+    (acc, item) => acc + Math.round(item.subtotal * 100),
+    0
+  ) / 100;
+
+  return {
+    isValid: true,
+    items: verifiedItems,
+    subtotal,
   };
 }

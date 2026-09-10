@@ -1,4 +1,4 @@
-import { OrderStatus, OrderType, canTransitionStatus } from "./calculations";
+import { OrderStatus, OrderType, canTransitionStatus } from "./calculations.js";
 
 export interface StateTransitionResult {
   allowed: boolean;

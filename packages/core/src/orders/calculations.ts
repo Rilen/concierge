@@ -114,6 +114,42 @@ export function calculateLoyaltyPoints(
 }
 
 /**
+ * Full order financial summary.
+ *
+ * Aggregates item subtotals, delivery fee, discount and platform commission
+ * using authoritative integer-cents arithmetic. The LLM NEVER performs these
+ * calculations — it delegates to this function.
+ */
+export interface OrderTotals {
+  subtotal: number;
+  deliveryFee: number;
+  discount: number;
+  total: number;
+  platformFee: number;
+}
+
+export function calculateOrderTotals(
+  items: Array<{ subtotal: number }>,
+  orderType: OrderType,
+  fixedDeliveryFee: number,
+  discount = 0,
+  commissionRate = 0.005
+): OrderTotals {
+  const subtotal = calculateOrderSubtotal(items);
+  const deliveryFee = calculateDeliveryFee(orderType, fixedDeliveryFee);
+  const total = calculateOrderTotal(subtotal, deliveryFee, discount);
+  const platformFee = calculatePlatformFee(total, commissionRate);
+
+  return {
+    subtotal,
+    deliveryFee,
+    discount,
+    total,
+    platformFee,
+  };
+}
+
+/**
  * Validates allowable state transitions for an order.
  */
 export function canTransitionStatus(

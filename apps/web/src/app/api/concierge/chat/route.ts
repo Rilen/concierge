@@ -1,21 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
-import { ConciergeOrchestrator } from "@concierge/ai";
+import { type CoreMessage, streamConciergeChat } from "@concierge/ai";
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { messages = [] } = body;
-    const lastMessage = messages[messages.length - 1]?.content || "";
+    const { messages, conversationId, channel = "WEB", externalSenderId, persistConversation = false } = body;
 
-    const orchestrator = new ConciergeOrchestrator();
-    const quickReplies = orchestrator.generateQuickReplies(lastMessage);
+    const coreMessages = (
+      Array.isArray(messages)
+        ? messages.map((m: { role: string; content: string }) => ({
+            role: m.role as CoreMessage["role"],
+            content: m.content,
+          }))
+        : []
+    ) as CoreMessage[];
 
-    return NextResponse.json({
-      message: {
-        role: "assistant",
-        content: `Recebi sua mensagem: "${lastMessage}". Estou consultando a base de dados do Concierge / Ostras.ai...`,
-      },
-      suggestions: quickReplies,
+    return streamConciergeChat(coreMessages, {
+      conversationId,
+      channel: channel as "WEB" | "WHATSAPP" | "TELEGRAM",
+      externalSenderId,
+      persistConversation,
     });
   } catch (error) {
     console.error("Erro na rota /api/concierge/chat:", error);

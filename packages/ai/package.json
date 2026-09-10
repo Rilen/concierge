@@ -11,7 +11,8 @@
     "./tools": "./src/tools/index.ts",
     "./prompts": "./src/prompts/index.ts",
     "./providers": "./src/providers/index.ts",
-    "./rag": "./src/rag/index.ts"
+    "./rag": "./src/rag/index.ts",
+    "./chat": "./src/chat-stream.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
@@ -19,7 +20,10 @@
   },
   "dependencies": {
     "@concierge/core": "workspace:*",
+    "@concierge/database": "workspace:*",
+    "@ai-sdk/google": "^1.2.22",
     "@google/genai": "^2.21.0",
+    "@prisma/client": "^6.19.3",
     "ai": "^4.1.45",
     "zod": "^3.24.2"
   },
