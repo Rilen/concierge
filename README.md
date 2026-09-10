@@ -1,7 +1,7 @@
 # 🛎️ Concierge / Ostras.ai
 
 > **Marketplace de Gastronomia, Pedidos & Reservas impulsionado por Agentes de IA.**  
-> Arquitetura Monorepo Moderna com **Next.js 16 (App Router)**, **React 19**, **TypeScript**, **Tailwind CSS v4**, **Clean Architecture**, **Prisma ORM**, **Neon PostgreSQL** e **Turborepo**.
+> Arquitetura Monorepo Moderna com **Next.js 16 (App Router)**, **React 19**, **TypeScript**, **Tailwind CSS v4**, **Clean Architecture**, **Drizzle ORM** (runtime), **Neon PostgreSQL** e **Turborepo**.
 
 ---
 
@@ -53,9 +53,9 @@ concierge/
 │   │   ├── src/prompts/               # System prompts mestres do Concierge
 │   │   └── src/providers/             # Integração com Gemini, OpenAI e Anthropic (Vercel AI SDK)
 │   │
-│   ├── database/                      # @concierge/database: Camada de Dados (Prisma ORM)
-│   │   ├── prisma/schema.prisma       # Schema PostgreSQL com suporte a pooling e directUrl
-│   │   └── src/client.ts              # Singleton com pool de conexões para serverless
+│   ├── database/                      # @concierge/database: Infraestrutura Prisma (legado — NÃO usado em runtime pelo apps/web)
+│   │   ├── prisma/schema.prisma       # Schema de referência — não consumido pelo runtime de apps/web
+│   │   └── src/client.ts              # Prisma singleton — não importado por apps/web/src
 │   │
 │   ├── ui/                            # @concierge/ui: Design System Compartilhado
 │   │   └── src/components/            # Button, Card, Badge, StatusBadge, Input
@@ -92,7 +92,8 @@ concierge/
 | **Linguagem** | [TypeScript 5.8+](https://www.typescriptlang.org/) | Tipagem estrita de ponta a ponta sem `any` |
 | **Monorepo** | [Turborepo](https://turbo.build/) + [pnpm](https://pnpm.io/) | Orquestração de tarefas, cache inteligente e workspaces |
 | **Banco de Dados** | [Neon PostgreSQL Serverless](https://neon.tech/) | Banco relacional escalável com Connection Pooling |
-| **ORM** | [Prisma ORM 6.4](https://www.prisma.io/) | Modelagem relacional e tipagem de banco |
+| **ORM (Runtime)** | [Drizzle ORM](https://orm.drizzle.team/) + @neondatabase/serverless | ORM em uso efetivo pelo pps/web (ver ADR-009) |
+| **ORM (Legado)** | [Prisma ORM 6.4](https://www.prisma.io/) | Infraestrutura de geração de schema — não usado em runtime (ver ADR-009) |
 | **Autenticação** | [Better Auth](https://www.better-auth.com/) | Autenticação moderna multi-tenant e RBAC |
 | **IA & LLMs** | [Vercel AI SDK](https://sdk.vercel.ai/) + [Google Gemini](https://ai.google.dev/) | Modelos generativos e tool calling para o Agente Concierge |
 | **Validação** | [Zod](https://zod.dev/) | Validação de schemas em todas as bordas do sistema |
@@ -122,7 +123,7 @@ Preencha as variáveis fundamentais (veja a tabela de variáveis abaixo).
 
 ### 3. Preparar o Banco de Dados
 ```bash
-# Gerar o cliente Prisma
+# Gerar o cliente Prisma (referência de schema — o ORM de runtime é Drizzle, ver ADR-009)
 pnpm db:generate
 
 # Sincronizar as tabelas com o banco de dados (Neon ou Postgres local)
@@ -153,7 +154,7 @@ O projeto está otimizado para deploy na **Vercel** conectado ao **Neon**:
    - Crie o projeto no console do [Neon](https://console.neon.tech).
    - Obtenha as duas URLs:
      - `DATABASE_URL`: Connection string com pooling ativado (porta 6543, `-pooler.neon.tech`).
-     - `DIRECT_URL`: Connection string direta (porta 5432) para operações DDL do Prisma.
+     - `DIRECT_URL`: Connection string direta (porta 5432) para migrações DDL e geração de schema Prisma.
 2. **Importar o Projeto na Vercel:**
    - Conecte o repositório GitHub `Rilen/concierge`.
    - **Root Directory:** Configure como `apps/web`.
@@ -161,7 +162,7 @@ O projeto está otimizado para deploy na **Vercel** conectado ao **Neon**:
 3. **Configurar as Variáveis de Ambiente na Vercel:**
    - Adicione `DATABASE_URL`, `DIRECT_URL`, `BETTER_AUTH_SECRET`, `APP_URL`, etc. (veja checklist abaixo).
 4. **Deploy Automático:**
-   - Durante a instalação, o hook `postinstall` da raiz e o `prebuild` do `apps/web` garantem a geração do Prisma Client.
+   - Durante a instalação, o hook `postinstall` da raiz e o `prebuild` do `apps/web` executam a geração do Prisma Client (referência de schema).
    - O Turborepo compila as dependências e o Next.js constrói as rotas sem conflitos.
 
 > 📖 Para instruções detalhadas passo a passo, consulte o [**Guia Oficial de Deploy (`docs/DEPLOY.md`)**](./docs/DEPLOY.md).
@@ -173,7 +174,7 @@ O projeto está otimizado para deploy na **Vercel** conectado ao **Neon**:
 | Variável | Obrigatória? | Descrição | Exemplo |
 | :--- | :---: | :--- | :--- |
 | `DATABASE_URL` | **Sim** | URL Pooled do Neon (para runtime das serverless functions) | `postgresql://user:pass@ep-pooler.neon.tech/neondb?sslmode=require` |
-| `DIRECT_URL` | **Sim** | URL Direta do Neon (para migrações e `prisma db push`) | `postgresql://user:pass@ep-direct.neon.tech/neondb?sslmode=require` |
+| `DIRECT_URL` | **Sim** | URL Direta do Neon (para migrações DDL e geração de schema Prisma) | `postgresql://user:pass@ep-direct.neon.tech/neondb?sslmode=require` |
 | `BETTER_AUTH_SECRET` | **Sim** | Segredo criptográfico de 32 bytes para sessões e tokens | `hex-string-de-32-bytes` |
 | `BETTER_AUTH_URL` | **Sim** | URL base do Better Auth | `https://seu-dominio.vercel.app` |
 | `APP_URL` | **Sim** | URL canônica da aplicação em produção | `https://seu-dominio.vercel.app` |
@@ -196,9 +197,9 @@ O projeto está otimizado para deploy na **Vercel** conectado ao **Neon**:
 | `pnpm test` | Executa a suíte de testes unitários com Vitest |
 | `pnpm typecheck` | Validação estática de tipos TypeScript em todos os workspaces |
 | `pnpm lint` | Validação de ESLint em todos os pacotes |
-| `pnpm db:generate` | Gera os tipos do Prisma Client no pacote `@concierge/database` |
-| `pnpm db:push` | Sincroniza o schema Prisma diretamente com o banco de dados |
-| `pnpm db:studio` | Abre a interface visual do Prisma Studio no navegador |
+| `pnpm db:generate` | Gera o Prisma Client de referência em `@concierge/database` (ORM de runtime é Drizzle — ver ADR-009) |
+| `pnpm db:push` | Sincroniza o schema Prisma com o banco (DDL de referência — runtime usa Drizzle) |
+| `pnpm db:studio` | Abre o Prisma Studio para inspeção visual do banco |
 | `pnpm db:seed` | Executa o seed de demonstração (restaurante demo, produtos, categorias) |
 
 ---
@@ -207,7 +208,7 @@ O projeto está otimizado para deploy na **Vercel** conectado ao **Neon**:
 
 O projeto é regido por diretrizes estritas documentadas na pasta [`.agent/`](./.agent/):
 
-- 📜 [**Constituição do Projeto (`.agent/CONSTITUTION.md`)**](./.agent/CONSTITUTION.md): Hierarquia inegociável de regras, regras de comissão (0,5%), cálculos estritos em centavos, segurança multi-tenant e protocolo de 9 etapas para agentes de IA.
+- 📜 [**Constituição do Projeto (.agent/CONSTITUTION.md)**](./.agent/CONSTITUTION.md): Hierarquia inegociável de regras, comissão de 0,5%, cálculos em centavos, multi-tenancy e protocolo de 11 etapas (v2.0).
 - 🧭 [**Resumo de Contexto (`.agent/CONTEXT.md`)**](./.agent/CONTEXT.md): Guia executivo de estado atual e módulos para novos chats e desenvolvedores.
 - 📐 [**Registro de Decisões Técnicas (`.agent/DECISIONS.md`)**](./.agent/DECISIONS.md): ADRs detalhando escolhas de monorepo, banco Neon, autenticação e deploy.
 - 📝 [**Changelog Oficial (`CHANGELOG.md`)**](./CHANGELOG.md): Histórico completo de versões e alterações do projeto.
@@ -220,7 +221,7 @@ O projeto é regido por diretrizes estritas documentadas na pasta [`.agent/`](./
 | :--- | :---: | :--- |
 | **Estrutura Monorepo** | 🟢 Concluído | Turborepo + pnpm workspaces com cache e pipelines configurados |
 | **Módulo de Pedidos (Orders)** | 🟢 Concluído | Portado do legado Degusta, 100% tipado, cálculos em centavos e regras de opções |
-| **Banco de Dados & Schema** | 🟢 Concluído | Prisma unificado e compatível com Neon (Connection Pooling + Direct URL) |
+| **Banco de Dados & Schema** | 🟢 Concluído | Drizzle ORM em runtime + Neon (Connection Pooling). Prisma como referência de schema (ADR-009). |
 | **Infraestrutura de Deploy** | 🟢 Concluído | Vercel configurada, caminhos corrigidos, scripts de prebuild e env vars mapeadas |
 | **Governança & Documentação** | 🟢 Concluído | Constituição, Contexto, ADRs, Changelog e README completos |
 | **Agente Concierge (Chat)** | 🟡 Em Andamento | Rotas preparadas; conexão com streaming Gemini e tools em desenvolvimento |

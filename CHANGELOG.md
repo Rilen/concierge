@@ -9,10 +9,25 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ## [Unreleased]
 
+### Governance
+- **Constituição 2.0 (.agent/CONSTITUTION.md):** Substituída pela versão 2.0 com 6 capítulos completos — Princípios Fundamentais (Arts. 1-5), Integridade Financeira (FIN-001 a FIN-008), Multi-tenancy & Autorização, Privacidade & LGPD, Padrões de Código e Protocolo de 11 Etapas para Agentes de Desenvolvimento. Cláusula Pétrea: hierarquia de 10 prioridades inegociáveis.
+- **Constituição de IA (.agent/AI_CONSTITUTION.md):** Criado novo documento com AI-001 a AI-010 — Least Authority, No Direct Database, No Secret Access, Deterministic Transactions, Explicit Confirmation, Tool Validation, Prompt Injection Resistance, Output Is Untrusted, Data Minimization, Provider Abstraction.
+- **Política de Segurança (.agent/SECURITY.md):** Criado novo documento com SEC-001 a SEC-015 — Zero Trust, Least Privilege, Defense in Depth, Fail Closed, Secrets Never Logged, Tenant Isolation, Server-side Authorization, Input Is Untrusted, AI Output Is Untrusted, Webhook Authentication, Idempotency, Auditability, Dependency Security, Supply Chain Security, Incident Response.
+- **Governança de Dados (.agent/DATA_GOVERNANCE.md):** Criado novo documento com classificação de 7 classes de dados, finalidade e base legal, minimização, 4 fluxos de dados documentados (Pedidos, IA, Pagamentos, WhatsApp), direitos dos titulares, retenção e subprocessadores. Base: LGPD — arquitetura preparada para atendimento, A VALIDAR juridicamente.
+- **Plano de Resposta a Incidentes (.agent/INCIDENT_RESPONSE.md):** Criado novo documento com fluxo de 8 etapas e 7 cenários — Vazamento de Secret, Cross-Tenant, Dados Pessoais, Prompt Injection, Webhook Comprometido, Conta Administrativa, Vazamento para LLM.
+- **Registro de Subprocessadores (docs/DATA_PROCESSORS.md):** Criado novo documento mapeando 8 subprocessadores — Vercel, Neon, Google Gemini, OpenAI, Anthropic, Evolution API, Mercado Pago, Asaas. Campos A VALIDAR para DPA, adequabilidade e transferências internacionais.
+- **ADRs (.agent/DECISIONS.md):** Adicionados ADR-009 (Drizzle vs Prisma — MIGRATE LATER), ADR-010 (Webhook HMAC + Idempotência), ADR-011 (Anti-IDOR/Tenant Context), ADR-012 (Secure Data Boundary para agentes de IA).
+- **Contexto Executivo (.agent/CONTEXT.md):** Atualizado para refletir estado real — ORM de runtime é Drizzle (não Prisma), estado híbrido documentado, riscos P0/P1/P2 mapeados, estrutura de governança 2.0 incluída.
+- **README.md:** Corrigidas afirmações incorretas sobre ORM — Prisma referenciado como infraestrutura legada, Drizzle identificado como ORM de runtime. Stack tecnológica atualizada.
+
 ### Planned
-- Ativação do streaming conversacional do Agente Concierge com Google Gemini via Vercel AI SDK.
-- Conexão do webhook Pix para confirmação automática de pagamentos (Mercado Pago / Asaas).
-- Integração de canal WhatsApp via Evolution API para atendimento automatizado do Concierge.
+- Blindagem Anti-IDOR (ADR-011): revisão sistemática de Server Actions e rotas.
+- Consolidação de domínio: remoção de pps/web/src/domain/orders/ duplicado.
+- Webhooks seguros: HMAC + tabela de idempotência webhook_events (ADR-010).
+- Ativação do Agente Concierge com streaming Google Gemini via Vercel AI SDK.
+- Integração de pagamentos Pix (Mercado Pago / Asaas).
+- Canal WhatsApp via Evolution API.
+
 
 ## [0.4.1] - 2026-09-10
 

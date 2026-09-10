@@ -103,3 +103,62 @@
 - **Consequências:**
   - *Positivas:* Deploy 100% automatizado, sem caminhos duplicados e com geração garantida do cliente do banco.
   - *Cuidados:* Não recolocar `"outputDirectory"` no `vercel.json` enquanto o Root Directory da Vercel for `apps/web`.
+
+---
+
+## ADR-009: Runtime ORM — Drizzle (apps/web) vs Prisma (@concierge/database)
+
+- **Status:** Débito Técnico Reconhecido — MIGRATE LATER
+- **Data:** Setembro de 2026 (Auditoria Arquitetural)
+- **Contexto:** Durante a auditoria arquitetural de setembro/2026, foi identificado que o runtime de `apps/web` utiliza exclusivamente **Drizzle ORM** com `@neondatabase/serverless` (via `apps/web/src/db/index.ts`), enquanto toda a documentação anterior afirmava que o ORM em uso era o **Prisma**. O pacote `@concierge/database` (com Prisma Client e schema Prisma) é declarado como dependência no `package.json` e `transpilePackages` do `next.config.ts`, mas não é importado em nenhum arquivo de `apps/web/src`. O Better Auth é configurado com `drizzleAdapter`, confirmando que Drizzle é o ORM real em runtime. O schema Drizzle (`apps/web/src/db/schema.ts`, 759 linhas) cobre 20+ tabelas com entidades não presentes no schema Prisma, incluindo `deliveryZones`, `deliveryDrivers`, `loyaltyAccounts`, `stockItems`, `auditLogs`. A hierarquia de UserRole no Drizzle é `'MASTER' | 'GERENTE' | 'PEDIDOS' | 'CLIENTE'`, enquanto o enum do Prisma era `SUPERADMIN | VENDOR_ADMIN | OPERATOR | CUSTOMER`.
+- **Decisão:** **MIGRATE LATER.** O runtime de `apps/web` permanece com Drizzle ORM. O pacote `@concierge/database` (Prisma) fica como infraestrutura legada de geração de schema de referência e CLI de DDL até que seja formalmente removido ou convertido em outra função. Nenhuma nova funcionalidade deve ser desenvolvida contra o Prisma Client em `apps/web`. Toda documentação foi corrigida para refletir o estado real.
+- **Consequências:**
+  - *Positivas:* Elimina confusão entre documentação e código; consolida a decisão de uso do Drizzle como ORM de runtime; permite planejamento ordenado da remoção do Prisma.
+  - *Cuidados:* O `prebuild` em `apps/web/package.json` ainda executa `db:generate` do Prisma — isso pode ser removido ou substituído por `drizzle-kit generate` em uma migração futura. Não misturar queries Prisma e Drizzle no mesmo fluxo de dados.
+
+---
+
+## ADR-010: Webhooks com Autenticação HMAC e Idempotência Obrigatória
+
+- **Status:** Decisão Arquitetural — A IMPLEMENTAR
+- **Data:** Setembro de 2026 (Auditoria Arquitetural)
+- **Contexto:** A auditoria identificou ausência de verificação de assinatura e mecanismo de idempotência nos webhooks de gateways de pagamento (Mercado Pago, Asaas). Webhooks sem autenticação são vulneráveis a replay attacks e confirmações fraudulentas de pedidos. Webhooks sem idempotência podem resultar em lançamentos duplicados no ledger financeiro.
+- **Decisão:**
+  1. Todo endpoint de webhook implementa verificação de assinatura HMAC-SHA256 (ou mecanismo equivalente do provedor) antes de qualquer processamento. Requisições com assinatura inválida são rejeitadas com HTTP 401.
+  2. Toda operação de webhook implementa deduplicação via tabela `webhook_events` com chave única `{provider}:{event_id}`. Eventos já processados retornam HTTP 200 silencioso sem re-execução.
+  3. O processamento de webhook ocorre dentro de transação atômica para garantir consistência entre atualização de status e lançamento no ledger.
+- **Consequências:**
+  - *Positivas:* Proteção contra replay attacks e confirmações fraudulentas; garantia de que cada evento de pagamento resulta em exatamente um lançamento no ledger; conformidade com FIN-007 e FIN-008.
+  - *Cuidados:* As chaves de assinatura dos webhooks (secrets) são variáveis de ambiente da classe SECRET e não podem ser expostas em logs ou respostas de API.
+
+---
+
+## ADR-011: Anti-IDOR — Tenant Context Obrigatório em Todas as Queries Sensíveis
+
+- **Status:** Decisão Arquitetural — PARCIALMENTE IMPLEMENTADO (risco P0 — A CORRIGIR)
+- **Data:** Setembro de 2026 (Auditoria Arquitetural)
+- **Contexto:** A auditoria identificou risco CRITICAL de IDOR/BOLA: a rota de tracking de pedido (`/pedido/[publicId]`) e algumas Server Actions buscam entidades usando apenas identificadores públicos ou IDs, sem validar o `restaurantId` do solicitante. Isto permite que um ator malicioso acesse dados de qualquer pedido ao adivinhar ou enumerar `publicId`s.
+- **Decisão:**
+  1. Toda query sobre entidade tenant-scoped (pedidos, clientes, pagamentos, produtos, etc.) inclui `restaurantId` como filtro obrigatório na cláusula WHERE.
+  2. A rota pública de tracking de pedido (`/pedido/[publicId]`) é uma exceção documentada: por design, permite acesso anônimo ao status de rastreamento, mas retorna EXCLUSIVAMENTE dados sanitizados pelo `sanitizeOrderForTracking` — sem dados financeiros internos, notas de operadores ou informações de outros clientes.
+  3. Para todas as demais operações (atualização de status, cancelamento, histórico completo), o `restaurantId` é verificado contra a sessão do usuário autenticado antes do processamento.
+  4. A função `requireRestaurantRole(restaurantId, roles)` deve ser chamada no início de toda Server Action que não seja explicitamente pública.
+- **Consequências:**
+  - *Positivas:* Eliminação do risco IDOR/BOLA; conformidade com os princípios de multi-tenancy da Constituição; redução de superfície de ataque.
+  - *Cuidados:* Requer revisão sistemática de todas as Server Actions e rotas de API para confirmar presença do filtro de tenant. Risco P0 ativo até a revisão ser concluída.
+
+---
+
+## ADR-012: Secure Data Boundary para Agentes de IA
+
+- **Status:** Decisão Arquitetural — A IMPLEMENTAR antes da ativação do Agente Concierge
+- **Data:** Setembro de 2026 (Auditoria Arquitetural)
+- **Contexto:** O Agente Concierge precisará acessar dados do sistema (cardápio, status de pedido, disponibilidade) para responder ao usuário. Sem uma fronteira de dados clara, há risco de que dados pessoais (PERSONAL), financeiros (FINANCIAL) ou internos (INTERNAL/SECRET) sejam inadvertidamente incluídos no contexto enviado a provedores externos de LLM, violando AI-009 e princípios LGPD.
+- **Decisão:**
+  1. **Tool Interface Segura:** Cada tool disponível ao agente expõe apenas os campos estritamente necessários para a resposta do usuário. O schema de saída de cada tool é revisado para excluir campos sensíveis antes do retorno ao modelo.
+  2. **Read-only por padrão:** Tools de consulta (search, get, list) não executam side effects. Tools de mutação (create_order_draft) operam em estado temporário e requerem confirmação explícita do usuário para persistência.
+  3. **Context Budget:** O contexto enviado ao modelo é auditável — cada componente (system prompt, tool descriptions, histórico de mensagens, dados de domínio) tem tamanho e conteúdo rastreáveis.
+  4. **No Personal Data in LLM Context:** Dados classificados como PERSONAL, FINANCIAL ou SECRET não são incluídos no contexto do modelo sem mascaramento e base legal documentada.
+- **Consequências:**
+  - *Positivas:* Conformidade com AI-001 a AI-009; proteção de dados pessoais na camada de IA; portabilidade entre provedores (AI-010); redução de risco de prompt injection (AI-007).
+  - *Cuidados:* Exige design cuidadoso do schema de resposta de cada tool para balancear informatividade e minimização de dados. Deve ser validado em ambiente de staging antes de ativação em produção.

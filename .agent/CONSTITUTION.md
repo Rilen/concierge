@@ -1,166 +1,299 @@
-# 📜 CONCIERGE / OSTRAS.AI — CONSTITUIÇÃO DO PROJETO & REGRAS DE OURO
+# 📜 CONCIERGE / OSTRAS.AI — CONSTITUIÇÃO DO PROJETO & REGRAS DE OURO v2.0
 
 **Versão:** 2.0  
-**Status:** NORMA FUNDAMENTAL E MANDATÓRIA  
-**Aplicação:** Todo agente de IA, desenvolvedor, engenheiro de software, automação ou ferramenta que inspecionar, criar ou modificar código neste projeto.
+**Status:** NORMA FUNDAMENTAL E MANDATÓRIA — Cláusula Pétrea  
+**Revisão:** Setembro de 2026 — Pós-Auditoria Arquitetural  
+**Aplicação:** Todo agente de IA, desenvolvedor, engenheiro, automação ou ferramenta que inspecionar, criar, modificar ou remover qualquer artefato deste projeto.
+
+> **"SIMPLICIDADE PARA O CLIENTE NUNCA JUSTIFICA SIMPLICIDADE IRRESPONSÁVEL NA ENGENHARIA."**
 
 ---
 
-## 🏛️ PREÂMBULO
+## CAPÍTULO I — PRINCÍPIOS FUNDAMENTAIS
 
-O **Concierge (Ostras.ai)** é um ecossistema inteligente de comércio, gastronomia e turismo local, combinando agentes conversacionais de inteligência artificial com uma infraestrutura transacional completa de pedidos (Delivery/Retirada), reservas de mesas, pagamentos e repasses.
+### Art. 1º — Não Quebrar o que Funciona
 
-O projeto foi construído sob um axioma inegociável:
+Antes de alterar qualquer módulo, tabela, rota, schema, configuração ou dependência:
 
-> **"SIMPLICIDADE PARA O CLIENTE E PARA O RESTAURANTE NUNCA JUSTIFICA SIMPLICIDADE IRRESPONSÁVEL NA ENGENHARIA."**
+1. Localizar a implementação existente e entender seu contexto histórico.
+2. Identificar todos os consumidores e dependências cruzadas no monorepo.
+3. Mapear os contratos de entrada/saída (tipos TypeScript, schemas Zod, eventos).
+4. Verificar testes e impacto em produção antes de editar.
+5. Garantir retrocompatibilidade onde houver consumidores ativos.
 
-A interface deve ser elegante, fluida e intuitiva.  
-A arquitetura deve ser rigorosa, modular e previsível.  
-A segurança, a privacidade e a integridade matemática dos dados são cláusulas pétreas.  
-Nenhum agente ou desenvolvedor tem autorização para sacrificar integridade, isolamento multi-tenant ou segurança em nome de velocidade ou conveniência de entrega.
+Alterações que quebrem comportamento funcional existente exigem decisão arquitetural explícita registrada como ADR.
 
----
+### Art. 2º — Hierarquia Suprema de Prioridades
 
-## ARTIGO 1 — HIERARQUIA SUPREMA DE PRIORIDADES
-
-Toda e qualquer decisão de arquitetura, codificação, refatoração ou configuração deverá respeitar rigorosamente a seguinte ordem de precedência:
-
-1. **Segurança e Proteção de Segredos** (chaves de API, credenciais de banco, tokens de sessão).
-2. **Integridade Matemática e Financeira dos Dados** (cálculos de pedidos, ledger e comissões).
-3. **Isolamento Multi-tenant & Zero IDOR/BOLA** (restaurante nunca acessa dados de outro).
-4. **LGPD & Privacidade de Dados** (minimização, sanitização de logs e projeções públicas).
-5. **Regras de Negócio e Contratos de Domínio** (fonte única de verdade no servidor).
-6. **Arquitetura Limpa e Modularidade do Monorepo** (desacoplamento entre packages e apps).
-7. **Rastreabilidade e Imutabilidade Histórica** (snapshots de pedidos, auditoria).
-8. **Cobertura de Testes e Tipagem Estrita** (zero `any`, validação Zod).
-9. **Experiência do Usuário (UX) e Performance**.
-10. **Conveniência de Implementação**.
-
-> ⚠️ **Cláusula Pétrea:** Um item de nível inferior JAMAIS poderá sobrepor ou comprometer um item de nível superior.
-
----
-
-## ARTIGO 2 — REGRA SUPREMA DE CONTINUIDADE: "NÃO QUEBRAR O QUE JÁ FUNCIONA"
-
-Antes de alterar, remover ou renomear qualquer módulo, tabela, rota ou componente:
-1. **Localizar** a implementação original e seu contexto histórico.
-2. **Identificar** todos os consumidores ativos e dependências cruzadas no monorepo.
-3. **Mapear** os contratos de entrada/saída (TypeScript types, Zod schemas, eventos).
-4. **Verificar** as suítes de testes associadas antes de editar.
-5. **Classificar o risco** da intervenção (SAFE, RISKY ou CRITICAL).
-6. **Garantir retrocompatibilidade** caso consumidores dependam da assinatura antiga.
-
----
-
-## ARTIGO 3 — PRINCÍPIOS DE ARQUITETURA DO MONOREPO
-
-1. **Monorepo com Turborepo & pnpm:**
-   - As aplicações ficam em `apps/` (ex: `apps/web`).
-   - Os pacotes compartilhados ficam em `packages/` (`core`, `ai`, `database`, `ui`, `config`).
-   - A gestão de pacotes utiliza estritamente `pnpm` workspaces (`workspace:*`).
-2. **Clean Architecture & Domínio Puro (`@concierge/core`):**
-   - O pacote `packages/core` contém as entidades, value objects, validações e cálculos de negócio.
-   - O `core` é **estritamente agnóstico de frameworks**: não importa React, Next.js, Prisma ou bibliotecas de UI.
-   - Regras de negócio vivem no `core`, garantindo portabilidade entre Web, WhatsApp Bot, CLI e Workers.
-3. **Servidor é a Única Autoridade:**
-   - O frontend é apenas um canal de apresentação e coleta de intenções.
-   - Preços, descontos, taxas de entrega, comissões, totais e status de pedidos são **exclusivamente calculados e validados no servidor**.
-   - O cliente nunca envia o preço final a ser gravado; envia itens e opções selecionadas, e o servidor recalcula tudo.
-4. **Serverless-Ready Database Layer (`@concierge/database`):**
-   - Conexões com Neon PostgreSQL utilizam Connection Pooling via PgBouncer (`DATABASE_URL`) para runtime.
-   - Operações de DDL e migrações utilizam a conexão direta (`DIRECT_URL`).
-   - O Prisma Client deve ser mantido em padrão singleton para evitar esgotamento de conexões em ambientes serverless da Vercel.
-
----
-
-## ARTIGO 4 — REGRAS DE COMISSÃO & MATEMÁTICA FINANCEIRA
-
-1. **Taxa Oficial da Plataforma (0,5%):**
-   - A taxa padrão do Concierge / Ostras.ai sobre pedidos originados pela plataforma é de **0,5%** (`ratePercentage: 0.5`).
-   - A comissão incide sobre o valor bruto do pedido gerado através do ecossistema.
-2. **Aritmética Estrita em Centavos Inteiros:**
-   - **É terminantemente proibido utilizar ponto flutuante (`float`/`double`) para cálculos monetários.**
-   - Todos os cálculos devem ser realizados em centavos inteiros (`integer`), utilizando `Math.round(valor * 100)`.
-   - Divisões financeiras e splits são arredondados com precisão controlada em centavos, prevenindo anomalias de representação binária IEEE-754.
-3. **Ledger Contábil Auditável:**
-   - Todas as transações financeiras, taxas de plataforma retidas e valores líquidos do comerciante devem ser registrados no modelo `FinancialLedger`.
-   - Registros do ledger são **imutáveis** (apenas inserções são permitidas; correções exigem lançamentos de estorno/compensação).
-4. **Imutabilidade Histórica do Pedido:**
-   - Ao finalizar um pedido, é gerado um snapshot integral (`OrderItem`, preços unitários, nomes dos produtos, opções adicionais e taxa de entrega vigentes no instante exato da compra).
-   - Alterações posteriores no cardápio ou nas taxas do restaurante nunca alteram pedidos passados.
-
----
-
-## ARTIGO 5 — PADRÕES DE CÓDIGO E ENGENHARIA
-
-1. **TypeScript Estrito:**
-   - O uso de `any` é **terminantemente proibido**. Use `unknown`, `never`, genéricos ou schemas tipados.
-   - Erros de typecheck (`pnpm typecheck`) bloqueiam qualquer deploy.
-2. **Validação em Todas as Fronteiras (Zod):**
-   - Toda entrada de dados externos (Server Actions, rotas de API, webhooks, payloads do agente de IA) deve ser validada por schemas Zod antes do processamento.
-3. **Tratamento Explícito de Erros:**
-   - Preferência pelo padrão `Result<T, E>` para regras de negócio e operações de domínio, evitando throws invisíveis.
-   - Mensagens de erro voltadas ao usuário final devem ser amigáveis e não expor stack traces ou detalhes de infraestrutura.
-4. **Server Actions Seguras:**
-   - Server Actions do Next.js devem validar autenticação e autorização do usuário no início da execução antes de invocar serviços de banco.
-
----
-
-## ARTIGO 6 — SEGURANÇA, PRIVACIDADE & MULTI-TENANCY
-
-1. **Isolamento Multi-Tenant Inegociável:**
-   - Toda query, mutação, visualização ou ação que envolva dados de um restaurante deve incluir explicitamente a cláusula `restaurantId` (ou validar o vínculo com o usuário logado).
-   - Nenhuma rota administrativa ou de gestão pode permitir a leitura ou alteração de dados de outro estabelecimento.
-2. **Zero IDOR / BOLA (Broken Object Level Authorization):**
-   - Identificadores sequenciais de banco de dados (`autoincrement`) nunca devem ser expostos em URLs públicas.
-   - Pedidos utilizam identificadores públicos opacos e imprevisíveis (`publicId` via nanoid seguro).
-3. **Sanitização de Projeções Públicas:**
-   - A rota pública de rastreamento do pedido (`/pedido/[publicId]`) deve utilizar o sanitizador oficial (`sanitizeOrderForTracking`).
-   - Dados sensíveis como comissão da plataforma (`platformFee`), notas internas do restaurante, dados bancários e identificadores de operadores **jamais são transmitidos ao cliente final**.
-4. **LGPD by Design:**
-   - Coleta mínima de dados para entrega (nome, telefone para contato/WhatsApp, endereço).
-   - Não solicitar nem armazenar CPF de clientes no MVP de pedidos.
-   - Tokens de sessão e segredos criptográficos são armazenados com hash seguro via Better Auth.
-
----
-
-## ARTIGO 7 — COMPORTAMENTO E PROTOCOLO OPERACIONAL DOS AGENTES DE IA
-
-Qualquer agente de IA que atue neste repositório (incluindo o assistente de desenvolvimento e o agente conversacional do Concierge) deve obedecer ao seguinte protocolo de 9 etapas:
+Toda decisão de engenharia obedece esta ordem inegociável:
 
 ```
-[1. Entender] ➔ [2. Inspecionar] ➔ [3. Mapear] ➔ [4. Classificar Risco] ➔ [5. Planejar] ➔ [6. Implementar] ➔ [7. Validar] ➔ [8. Auditar] ➔ [9. Reportar]
+1. Segurança e proteção de segredos
+2. Integridade dos dados (financeira, transacional, histórica)
+3. Privacidade (LGPD, minimização, finalidade)
+4. Isolamento Multi-tenant (restaurante nunca acessa dados de outro)
+5. Regras de negócio e contratos de domínio
+6. Arquitetura limpa e modularidade
+7. Rastreabilidade e auditabilidade
+8. Cobertura de testes e tipagem estrita
+9. Experiência do Usuário (UX) e Performance
+10. Conveniência de implementação
 ```
 
-1. **Entender:** Ler com atenção a solicitação do usuário e os requisitos mandatórios.
-2. **Inspecionar:** Analisar os arquivos existentes envolvidos antes de gerar qualquer código.
-3. **Mapear:** Verificar dependências cruzadas, imports e tipos compartilhados nos pacotes.
-4. **Classificar Risco:**
-   - `SAFE`: Edição de documentação, novos testes ou adição de rotas isoladas.
-   - `SAFE WITH PRECONDITION`: Modificação em componentes compartilhados com consumidores conhecidos.
-   - `RISKY`: Alterações no schema do Prisma, cálculos de pedidos, comissões ou autenticação.
-   - `BLOCKED`: Ações que quebram contratos existentes ou violam a hierarquia do Artigo 1.
-5. **Planejar:** Definir a estratégia passo a passo antes de alterar múltiplos arquivos.
-6. **Implementar:** Escrever código limpo, documentado, seguindo as convenções do projeto.
-7. **Validar:** Executar validação automatizada (`build`, `typecheck`, `tests`).
-8. **Auditar:** Fazer `git diff` e `git status` para garantir que apenas os arquivos necessários foram modificados.
-9. **Reportar:** Explicar claramente o que foi feito, o porquê e apresentar o resultado ao usuário.
+**Cláusula Pétrea:** Um item de nível inferior JAMAIS pode sobrepor ou comprometer um item de nível superior. Se uma regra de conveniência conflitar com segurança, segurança prevalece sem exceção.
+
+Se um agente identificar que outra hierarquia é tecnicamente superior para um caso específico, deve registrar a justificativa como ADR antes de qualquer implementação.
+
+### Art. 3º — Não Confundir Automação com Autoridade
+
+O Agente Concierge pode, dentro de suas ferramentas autorizadas:
+
+- **interpretar** intenções do usuário
+- **consultar** dados públicos do cardápio e disponibilidade
+- **recomendar** produtos, horários e estabelecimentos
+- **preparar** rascunhos de pedidos e reservas
+- **orquestrar** sequências de tools registradas
+
+O Agente Concierge **NÃO É AUTORIDADE** sobre:
+
+- identidade e autenticação
+- autorização e permissões
+- cálculo de preço e subtotal
+- processamento de pagamento
+- aplicação de comissão (0,5%)
+- verificação de disponibilidade de estoque
+- confirmação de pedido
+- cancelamento de pedido
+- emissão de reembolso
+- liquidação e repasse financeiro
+
+Essas operações são executadas exclusivamente por código determinístico, validado e auditado.
+
+### Art. 4º — PostgreSQL é a Autoridade Persistente
+
+O banco de dados PostgreSQL (Neon) é a fonte de verdade do sistema.
+
+O ORM, query builder ou driver de acesso ao banco é **detalhe de infraestrutura**:
+
+- Regras de negócio NUNCA residem em schemas de ORM.
+- Validações de domínio NUNCA residem em constraints exclusivamente do ORM.
+- A camada de acesso ao banco pode ser substituída sem alteração das regras de negócio.
+- O schema SQL é a documentação autoritativa das entidades persistidas.
+
+**Estado atual do projeto (Setembro/2026):** O runtime de `apps/web` utiliza Drizzle ORM com `@neondatabase/serverless`. O pacote `@concierge/database` com Prisma existe como infraestrutura legada de geração de schema e tipos, mas não é consumido diretamente pelo código de aplicação em runtime. Esta dualidade é um débito técnico reconhecido e documentado no ADR-009.
+
+### Art. 5º — Regra Contra Overengineering
+
+Segurança, LGPD e governança não autorizam complexidade desnecessária.
+
+Toda nova abstração, dependência ou camada deve possuir justificativa técnica documentada.
+
+**NÃO introduzir sem necessidade demonstrada:**
+- microserviços
+- filas de mensagens ou event bus
+- múltiplos bancos de dados
+- múltiplos ORMs ou drivers simultâneos
+- abstrações artificiais que aumentem a superfície de manutenção
+- infraestrutura prematura para escalas não atingidas
+
+**Objetivo:** Máxima segurança e governança com a menor complexidade operacional razoável.
 
 ---
 
-## ARTIGO 8 — MATRIZ DE PERMITIDO VS PROIBIDO
+## CAPÍTULO II — INTEGRIDADE FINANCEIRA & COMISSÃO
 
-| Categoria | ✅ PERMITIDO & RECOMENDADO | ❌ TERMINANTEMENTE PROIBIDO |
-| :--- | :--- | :--- |
-| **Moeda & Dinheiro** | Inteiros em centavos (`cents = Math.round(val * 100)`) | Usar `float`/`number` com decimais soltos em operações financeiras |
-| **Comissão** | Taxa oficial de **0,5%** registrada em ledger auditável | Alterar alíquota sem autorização ou embutir taxas ocultas |
-| **Tipagem** | Tipos explícitos, interfaces fechadas, Zod schemas | Uso de `any`, `@ts-ignore` ou casting inseguro (`as unknown as X`) |
-| **Segurança** | `publicId` (nanoid) em links externos e rotas públicas | Expor `id` interno ou UUID sequencial em URLs de tracking |
-| **Banco de Dados** | Singleton Prisma, pooling no runtime e direct no DDL | Múltiplas instâncias `new PrismaClient()` em serverless |
-| **Monorepo** | Imports limpos via `@concierge/*` e workspaces pnpm | Imports relativos cruzados longos (ex: `../../packages/core`) |
-| **Deploy** | Configuração limpa no Turborepo e hooks `prebuild` | Subir credenciais `.env` reais para o Git |
-| **Agentes IA** | Verificar `git status`, testar build e pedir confirmação para commits | Fazer commit ou push destrutivo sem consentimento prévio do usuário |
+**ALÍQUOTA OFICIAL:** A taxa da plataforma Concierge / Ostras.ai é de **0,5%** sobre o valor bruto dos pedidos originados pelo ecossistema. Esta alíquota não pode ser alterada sem decisão formal registrada como ADR.
+
+### FIN-001 — Integer Money
+
+Todos os valores monetários são representados e calculados como inteiros em centavos (`cents: number`).
+
+```typescript
+// CORRETO
+const totalCents = Math.round(value * 100);
+
+// PROIBIDO
+const total = 10.5 + 2.3; // float aritmético
+```
+
+### FIN-002 — No Floating Point
+
+É terminantemente proibido usar `float` ou `double` para cálculos monetários em qualquer camada da aplicação.
+
+Exibição visual divide por 100 com 2 casas decimais. O dado persistido e calculado nunca é float.
+
+### FIN-003 — Deterministic Financial Calculation
+
+Todos os cálculos de subtotal, frete, desconto, comissão (0,5%) e total são realizados exclusivamente no servidor por funções determinísticas em `@concierge/core`.
+
+O cliente nunca envia o preço final. Envia itens selecionados. O servidor recalcula tudo.
+
+### FIN-004 — Immutable Ledger
+
+Registros financeiros no ledger são append-only. Nenhuma linha pode ser atualizada ou deletada.
+
+Correções exigem lançamentos de estorno ou compensação com referência ao lançamento original.
+
+### FIN-005 — Reversal Instead of Mutation
+
+Cancelamentos, estornos e ajustes financeiros são registrados como novos lançamentos com referência ao original. A operação de UPDATE ou DELETE em entradas financeiras é proibida.
+
+### FIN-006 — Order Financial Snapshot
+
+Ao confirmar um pedido, o sistema congela um snapshot integral: nome do produto, preço unitário, opcionais selecionados, taxa de entrega e taxa da plataforma vigentes no instante da compra.
+
+Alterações posteriores no cardápio ou taxas do restaurante não afetam pedidos já registrados.
+
+### FIN-007 — Idempotent Payment Processing
+
+Todo processamento de pagamento (recebimento de webhook, confirmação de status) deve ser idempotente.
+
+A mesma notificação de pagamento processada duas vezes não pode gerar dois lançamentos no ledger.
+
+Implementar via tabela de idempotência (`webhook_events`) com chave única por evento externo.
+
+### FIN-008 — Provider Verification
+
+Notificações de gateways de pagamento (Mercado Pago, Asaas) são verificadas criptograficamente (HMAC-SHA256 ou equivalente do provider) antes de qualquer processamento.
+
+Nunca confiar em um webhook apenas porque ele possui um ID aparentemente válido.
 
 ---
 
-*Esta Constituição vigora como norma orientadora suprema para todo o ciclo de vida do ecossistema Concierge (Ostras.ai).*
+## CAPÍTULO III — MULTI-TENANCY & AUTORIZAÇÃO
+
+### Princípio Central
+
+> **Nenhuma operação sobre recurso pertencente a um restaurante pode ocorrer sem contexto explícito de tenant (restaurantId) validado server-side e autorização correspondente verificada para o usuário autenticado.**
+
+### Proteção contra IDOR / BOLA
+
+**Obscuridade de identificador NÃO constitui autorização.**
+
+Conhecer um publicId de pedido não garante direito de alteração, acesso privilegiado ou informações internas. O publicId é apenas um token de rastreamento público — toda operação sensível exige verificação adicional de sessão ou ownership.
+
+### Proteções Mandatórias
+
+1. **Anti-IDOR:** Toda query sobre entidade tenant-scoped inclui restaurantId na cláusula WHERE.
+2. **Anti-BOLA:** A autorização verifica que o objeto pertence ao tenant do usuário autenticado.
+3. **Anti-Privilege Escalation:** Verificação server-side de role para cada operação sensível.
+4. **Anti-Cross-Tenant:** Impossibilidade estrutural de consultar dados de outro restaurante.
+
+### Identificadores Públicos
+
+- IDs internos de banco (uuid) nunca são expostos em URLs públicas como mecanismo de segurança.
+- Pedidos utilizam publicId opaco gerado via nanoid seguro (ord_xxxxx).
+- O publicId não é segredo — é conveniente para tracking público, mas não autoriza operações privilegiadas.
+
+### Hierarquia de Roles
+
+```
+SUPERADMIN > MASTER > GERENTE > PEDIDOS > CLIENTE
+```
+
+Cada role acessa apenas os recursos documentados para sua camada. A verificação ocorre sempre server-side.
+
+---
+
+## CAPÍTULO IV — PRIVACIDADE & LGPD
+
+### Princípio: Privacy by Design
+
+> **A arquitetura do Concierge está preparada para atendimento aos requisitos aplicáveis da LGPD, sujeita às validações jurídicas, contratuais e operacionais necessárias.**
+
+Não declarar conformidade plena sem validação jurídica especializada.
+
+### Pilares de Privacidade
+
+1. **Finalidade:** Dados coletados servem a propósito específico e declarado.
+2. **Necessidade e Minimização:** Coletar apenas o estritamente necessário. CPF não é coletado no MVP.
+3. **Controle de Acesso:** Dados pessoais acessíveis apenas pelo restaurante titular e pelo próprio titular.
+4. **Retenção:** Definida por finalidade e obrigações legais. Marcar como A VALIDAR onde não definido.
+5. **Descarte:** Dados pessoais anonimizados ou excluídos após encerramento da finalidade.
+6. **Auditabilidade:** Operações relevantes sobre dados pessoais registradas em audit_logs.
+7. **Segurança:** Dados em trânsito e em repouso protegidos por TLS e controles de acesso.
+8. **Subprocessadores:** Mapeados em docs/DATA_PROCESSORS.md.
+9. **Transferências Internacionais:** Exigem avaliação de adequabilidade — A VALIDAR juridicamente.
+
+### Proteção Explícita: Dados para LLMs
+
+**Dados PERSONAL, SENSITIVE, FINANCIAL e SECRET nunca são enviados a modelos de linguagem externos sem:**
+- anonimização ou mascaramento prévio
+- avaliação de necessidade estrita para a resposta
+- base legal documentada para o processamento
+
+### Classificação de Dados (7 Classes)
+
+| Classe | Exemplos | Frontend? | LLM? | Logs? | Retenção |
+|--------|----------|-----------|------|-------|----------|
+| PUBLIC | Cardápio, nome, horários | Sim | Sim | Sim | Indefinida |
+| INTERNAL | IDs técnicos, métricas | Não | Não | Sim | 12 meses |
+| PERSONAL | Nome, telefone, endereço | Titular apenas | Não | Mascarado | A VALIDAR |
+| SENSITIVE | Biometria, saúde | Não coletado | Não | Não | N/A |
+| FINANCIAL | Valor, comissão, chave Pix | Resumo público | Não | Não | A VALIDAR |
+| SECRET | DATABASE_URL, API Keys | Nunca | Nunca | Nunca | Rotação imediata |
+| AI_CONFIDENTIAL | System prompts, regras internas | Não | Internamente | Não | Ciclo de versão |
+
+---
+
+## CAPÍTULO V — PADRÕES DE CÓDIGO & ENGENHARIA
+
+### Tipagem Estrita
+
+- Uso de `any` é proibido. Usar `unknown`, `never`, genéricos ou schemas tipados.
+- Erros de typecheck bloqueiam qualquer deploy.
+
+### Validação em Todas as Fronteiras
+
+Toda entrada de dados externos (Server Actions, rotas de API, webhooks, payloads de LLM) é validada por schemas Zod antes do processamento.
+
+### Tratamento Explícito de Erros
+
+- Preferência pelo padrão `Result<T, E>` em operações de domínio.
+- Mensagens de erro ao usuário final não expõem stack traces, queries SQL ou detalhes de infraestrutura.
+
+### Server Actions Seguras
+
+Server Actions do Next.js validam autenticação e autorização do usuário no início da execução antes de invocar qualquer serviço de banco de dados.
+
+---
+
+## CAPÍTULO VI — PROTOCOLO OBRIGATÓRIO PARA AGENTES DE DESENVOLVIMENTO
+
+Qualquer agente de IA que modifique código neste repositório executa obrigatoriamente:
+
+```
+1.  Understand       — Compreender o pedido e requisitos mandatórios desta Constituição
+2.  Inspect          — Inspecionar arquivos relevantes antes de gerar código
+3.  Plan             — Definir estratégia passo a passo
+4.  Architecture     — Registrar como ADR se houver decisão arquitetural nova
+    Decision
+5.  Implement        — Escrever código limpo, documentado e tipado
+6.  Test             — Executar build, typecheck, lint e testes disponíveis
+7.  Security Review  — Verificar impactos de segurança, multi-tenancy, IDOR e secrets
+8.  Data/Privacy     — Verificar impacto em dados pessoais e LGPD
+    Review            (Condicional: executar quando houver impacto em dados pessoais)
+9.  Financial Review — Verificar impacto em cálculos, ledger e comissão de 0,5%
+                       (Condicional: executar quando houver impacto financeiro)
+10. Deploy           — Somente após autorização explícita do responsável pelo projeto
+11. Verify           — Confirmar comportamento esperado em produção
+```
+
+### Vedações Absolutas aos Agentes de Desenvolvimento
+
+Nenhum agente pode:
+
+- Remover regra constitucional sem ADR aprovado
+- Desabilitar validação de segurança ou autenticação
+- Alterar alíquota de comissão (0,5%) sem decisão formal
+- Alterar schema de banco sem avaliação de migração e plano de rollback
+- Modificar configuração de produção sem autorização explícita
+- Expor segredos, chaves ou tokens em qualquer saída textual ou log
+- Ignorar erros de typecheck, lint ou testes
+- Introduzir dependência sem justificativa documentada
+- Executar operação destrutiva (DROP, DELETE em massa, rotação de chave) sem confirmação explícita
+- Fazer commit ou push sem consentimento prévio do usuário
+
+---
+
+*Concierge / Ostras.ai — Constituição do Projeto v2.0 — Setembro de 2026*
