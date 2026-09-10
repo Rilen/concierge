@@ -11,6 +11,7 @@
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
     "clean": "turbo run clean",
+    "postinstall": "pnpm --filter @concierge/database db:generate",
     "db:generate": "pnpm --filter @concierge/database db:generate",
     "db:push": "pnpm --filter @concierge/database db:push",
     "db:migrate": "pnpm --filter @concierge/database db:migrate",
