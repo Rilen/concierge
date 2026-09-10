@@ -1,0 +1,31 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["DOM", "DOM.Iterable", "ES2022"],
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "resolveJsonModule": true,
+    "allowJs": true,
+    "checkJs": false,
+    "jsx": "preserve",
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "isolatedModules": true,
+    "incremental": true,
+    "baseUrl": ".",
+    "paths": {
+      "@concierge/core": ["./packages/core/src"],
+      "@concierge/core/*": ["./packages/core/src/*"],
+      "@concierge/ai": ["./packages/ai/src"],
+      "@concierge/ai/*": ["./packages/ai/src/*"],
+      "@concierge/database": ["./packages/database/src"],
+      "@concierge/database/*": ["./packages/database/src/*"],
+      "@concierge/ui": ["./packages/ui/src"],
+      "@concierge/ui/*": ["./packages/ui/src/*"],
+      "@concierge/config/*": ["./packages/config/*"]
+    }
+  },
+  "exclude": ["node_modules", "dist", ".next", "legacy"]
+}

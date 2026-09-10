@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "orders_restaurant_order_number_idx" ON "orders" USING btree ("restaurant_id","order_number");

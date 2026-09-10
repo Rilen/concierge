@@ -1,0 +1,28 @@
+{
+  "name": "concierge-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@9.15.4",
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "clean": "turbo run clean",
+    "db:generate": "pnpm --filter @concierge/database db:generate",
+    "db:push": "pnpm --filter @concierge/database db:push",
+    "db:migrate": "pnpm --filter @concierge/database db:migrate",
+    "db:studio": "pnpm --filter @concierge/database db:studio",
+    "db:seed": "pnpm --filter @concierge/database db:seed"
+  },
+  "devDependencies": {
+    "prettier": "^3.5.3",
+    "turbo": "^2.4.4",
+    "typescript": "^5.8.2"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
