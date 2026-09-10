@@ -72,16 +72,16 @@ pnpm db:seed
 4. Clique em **"Import"**.
 
 ### 3.2 Configurações de Build & Monorepo (Preset Zero-Config)
-O repositório já possui um arquivo [`vercel.json`](../vercel.json) na raiz configurado com as diretrizes do Turborepo:
+O projeto está configurado para deploy limpo na Vercel:
 
 - **Framework Preset:** `Next.js` (detectado automaticamente)
-- **Root Directory:** Deixe `./` (a raiz do projeto).
-- **Build Command:** Já controlado pelo `vercel.json` (`turbo run build --filter=@concierge/web...`).
-- **Output Directory:** Já controlado pelo `vercel.json` (`apps/web/.next`).
+- **Root Directory:** `apps/web`
+- **Build Command:** Padrão do Next.js (`next build`) com acionamento automático do script `"prebuild": "pnpm --filter @concierge/database db:generate"`
+- **Output Directory:** Padrão do Next.js (`.next`, não sobrescrever)
 - **Install Command:** A Vercel detecta automaticamente o `pnpm` pelo arquivo `pnpm-lock.yaml` e pela propriedade `packageManager` no `package.json`.
 
 > [!TIP]
-> Durante a instalação das dependências (`pnpm install`), o script `postinstall` configurado no `package.json` raiz executa automaticamente `pnpm --filter @concierge/database db:generate`, garantindo que os tipos do Prisma Client estejam prontos antes do build do Next.js!
+> Durante a instalação das dependências (`pnpm install`), o script `postinstall` configurado no `package.json` raiz executa automaticamente `pnpm --filter @concierge/database db:generate`. Além disso, o `prebuild` no `apps/web/package.json` assegura que o Prisma Client esteja sempre pronto antes de qualquer compilação do Next.js!
 
 ---
 

@@ -1,144 +1,189 @@
 # 🛎️ Concierge / Ostras.ai
 
 > **Marketplace de Gastronomia, Pedidos & Reservas impulsionado por Agentes de IA.**  
-> Arquitetura Monorepo Moderna com **Next.js (App Router)**, **TypeScript**, **Clean Architecture**, **Prisma** e **Turborepo**.
+> Arquitetura Monorepo Moderna com **Next.js 16 (App Router)**, **React 19**, **TypeScript**, **Tailwind CSS v4**, **Clean Architecture**, **Prisma ORM**, **Neon PostgreSQL** e **Turborepo**.
 
 ---
 
 ## 🌟 Visão Geral do Projeto
 
-O **Concierge (Ostras.ai)** é um ecossistema conversacional e transacional voltado para o comércio e turismo local. Ele combina:
-1. **Agente Inteligente Concierge**: Interação conversacional via Web e WhatsApp (Evolution API) para descoberta gastronômica, sugestões personalizadas e atendimento ágil.
-2. **Módulo de Pedidos & Delivery**: Evolução da plataforma *Degusta / Paladar*, provendo cardápio digital próprio, cálculo monetário seguro em centavos inteiros, validação server-side de opções e taxa transparente de **0,5%**.
-3. **Módulo de Reservas de Mesas**: Agendamento com controle de capacidade e confirmação em tempo real.
-4. **Matching & Descoberta**: Algoritmo de recomendação baseado em intenções, preferências culinárias, proximidade e horário de funcionamento.
-5. **Ledger & Split Financeiro**: Registro auditável de repasses e comissões da plataforma.
+O **Concierge (Ostras.ai)** é um ecossistema inteligente voltado ao comércio e turismo gastronômico local (iniciando em Rio das Ostras e Região dos Lagos). O sistema combina experiência conversacional com infraestrutura transacional completa de marketplace:
+
+1. **Agente Inteligente Concierge:** Atendimento omnicanal (Web Chat e WhatsApp via Evolution API) com compreensão contextual para busca culinária ("quero pizza de camarão aberta agora"), recomendações personalizadas e geração de rascunhos de pedidos.
+2. **Módulo de Pedidos & Delivery (Evolução do Degusta / Paladar):** Cardápio digital white-label por restaurante (`/r/[slug]`), carrinho dinâmico, cálculo monetário estritamente em centavos inteiros, validação server-side de opções e taxa transparente e competitiva de **0,5%**.
+3. **Acompanhamento Seguro em Tempo Real:** Rastreamento público de pedidos via identificador opaco (`/pedido/[publicId]`) com projeções blindadas contra ataques IDOR/BOLA e vazamento de dados (LGPD by Design).
+4. **Painel de Operações da Cozinha:** Kanban interativo em tempo real para recebimento, preparo e despacho de pedidos (`/gestao`).
+5. **Módulo de Reservas de Mesas:** Agendamento com controle de capacidade por turnos e confirmação automática.
+6. **Ledger & Repasse Financeiro:** Registro contábil imutável de todas as transações, taxas da plataforma e pagamentos aos comerciantes.
 
 ---
 
-## 📁 Arquitetura do Monorepo
+## 🏗️ Arquitetura do Monorepo
+
+O projeto é estruturado como um monorepo modular orquestrado com **Turborepo** e **pnpm workspaces**:
 
 ```
 concierge/
 ├── apps/
-│   └── web/                           # Aplicação Principal (Next.js 16 App Router)
-│       ├── src/app/
+│   └── web/                           # Aplicação Web Principal (Next.js 16 App Router)
+│       ├── src/app/                   # Rotas públicas, administrativas e endpoints de API
 │       │   ├── page.tsx               # Portal Concierge com chat interativo & busca
 │       │   ├── r/[slug]/              # Cardápio digital do restaurante (Delivery/Retirada)
-│       │   ├── pedido/[publicId]/     # Rastreamento do pedido pelo cliente em tempo real
+│       │   ├── pedido/[publicId]/     # Rastreamento seguro do pedido pelo cliente
 │       │   ├── gestao/                # Kanban de cozinha e gestão de pedidos do restaurante
-│       │   ├── admin/                 # Painel administrativo master
-│       │   └── api/                   # Rotas de API (Concierge AI, Pedidos, Webhooks)
+│       │   ├── admin/                 # Painel administrativo master da plataforma
+│       │   └── api/                   # Rotas de API (Concierge AI, Auth, Webhooks)
 │       ├── src/modules/
 │       │   ├── orders/                # Componentes, contexto de carrinho, actions e serviços de pedidos
-│       │   └── concierge/             # Componentes de chat e hooks do agente
-│       └── package.json
+│       │   └── concierge/             # Componentes de chat e hooks do agente conversacional
+│       ├── turbo.json                 # Configuração do Turborepo em nível de pacote
+│       └── package.json               # Scripts de build (incluindo hook prebuild)
 │
 ├── packages/
-│   ├── core/                          # Domínio Puro de Negócio (Framework Agnostic)
-│   │   ├── src/orders/                # Cálculos, validação server-side, sanitizador, testes
-│   │   ├── src/agents/                # Tipos de conversa, intenções e contratos de tools
+│   ├── core/                          # @concierge/core: Domínio Puro de Negócio (Framework-Agnostic)
+│   │   ├── src/orders/                # Cálculos em centavos, validação server-side, sanitizador
+│   │   ├── src/commission/            # Regras da taxa oficial de 0,5% e divisão financeira
+│   │   ├── src/agents/                # Tipos de conversa, intenções e contratos de tools de IA
 │   │   ├── src/bookings/              # Entidades e regras de capacidade de reservas
-│   │   ├── src/matching/              # Algoritmo de relevância e recomendação
-│   │   ├── src/commission/            # Regras da taxa de 0,5% e divisão financeira
-│   │   └── src/types/                 # Entidades e value objects comuns (Result, Money, Address)
+│   │   └── src/types/                 # Value objects comuns (Result, Money, Address)
 │   │
-│   ├── ai/                            # Inteligência Artificial & LLM Orchestration
-│   │   ├── src/agents/                # Concierge Orchestrator e loops de agente
-│   │   ├── src/tools/                 # Tools: search_catalog, create_order_draft, track_order, book_table
-│   │   ├── src/prompts/               # System prompt mestre do Concierge
-│   │   ├── src/providers/             # Abstração de provedores (Gemini, OpenAI, Anthropic)
-│   │   └── src/rag/                   # Recuperação semântica e catálogo vetorial
+│   ├── ai/                            # @concierge/ai: Orquestração de Agentes & LLMs
+│   │   ├── src/agents/                # Concierge Orchestrator e loops de decisão
+│   │   ├── src/tools/                 # Tools: search_catalog, create_order_draft, track_order
+│   │   ├── src/prompts/               # System prompts mestres do Concierge
+│   │   └── src/providers/             # Integração com Gemini, OpenAI e Anthropic (Vercel AI SDK)
 │   │
-│   ├── database/                      # Camada de Dados (Prisma ORM)
-│   │   ├── prisma/schema.prisma       # Schema unificado PostgreSQL
+│   ├── database/                      # @concierge/database: Camada de Dados (Prisma ORM)
+│   │   ├── prisma/schema.prisma       # Schema PostgreSQL com suporte a pooling e directUrl
 │   │   └── src/client.ts              # Singleton com pool de conexões para serverless
 │   │
-│   ├── ui/                            # Design System Compartilhado
-│   │   ├── src/components/            # Button, Card, Badge, StatusBadge, Input
-│   │   └── src/lib/utils.ts           # Utilitário cn (clsx + tailwind-merge)
+│   ├── ui/                            # @concierge/ui: Design System Compartilhado
+│   │   └── src/components/            # Button, Card, Badge, StatusBadge, Input
 │   │
-│   └── config/                        # Configurações Compartilhadas
+│   └── config/                        # @concierge/config: Configurações Compartilhadas
 │       └── tsconfig.base.json         # Presets de TypeScript
 │
-├── prisma/
-│   └── schema.prisma                  # Referência direta do schema para CLI na raiz
-├── scripts/
-│   └── setup.js                       # Script de diagnóstico e inicialização do ambiente
-├── docs/
-│   ├── CONSTITUTION.md                # Regras de ouro de engenharia e integridade
-│   ├── architecture/                  # Detalhes de arquitetura e decisões técnicas
-│   └── legacy-orders/                 # Histórico completo de desenvolvimento do Degusta
+├── .agent/                            # Governança de Agentes de IA & Engenharia
+│   ├── CONSTITUTION.md                # Constituição do Projeto e Regras de Ouro inegociáveis
+│   ├── CONTEXT.md                     # Resumo executivo do estado atual para novos chats/agentes
+│   └── DECISIONS.md                   # Architecture Decision Records (ADRs) das decisões técnicas
+│
+├── docs/                              # Documentação Operacional
+│   └── DEPLOY.md                      # Guia oficial passo a passo de deploy (Vercel + Neon)
+│
 ├── legacy/
-│   └── degusta-v1/                    # Backup integral do projeto anterior (isolado e preservado)
-├── .env.example                       # Variáveis de ambiente completas e documentadas
-├── package.json                       # Scripts globais do Turborepo
+│   └── degusta-v1/                    # Backup integral e preservado do código legado Degusta
+│
+├── CHANGELOG.md                       # Histórico cronológico de mudanças do projeto
+├── turbo.json                         # Pipeline de tarefas, cache e variáveis globais do Turborepo
+├── vercel.json                        # Preset do Next.js para a Vercel
 ├── pnpm-workspace.yaml                # Definição dos workspaces do pnpm
-├── turbo.json                         # Pipeline de build e cache do Turborepo
-└── README.md
+└── .env.example                       # Variáveis de ambiente completas e documentadas
 ```
 
 ---
 
-## 🍕 Integração do Módulo Degusta / Paladar
+## ⚡ Stack Tecnológica
 
-O código original do projeto de pedidos online foi reorganizado estrategicamente:
-1. **Domínio Puro (`packages/core/src/orders/`)**:
-   - **`calculations.ts`**: Cálculos financeiros realizados unicamente em centavos inteiros (`cents = Math.round(val * 100)`), eliminando erros de ponto flutuante IEEE-754.
-   - **`validation.ts`**: Autoridade server-side para validação da árvore de opções (`minSelect`, `maxSelect`, grupos obrigatórios e vínculo de tenant).
-   - **`sanitizer.ts`**: Projeção de rastreamento de pedidos segura que **nunca vaza** margens internas (`platformFee`), identificadores de operadores (`changedBy`) ou dados confidenciais (Zero IDOR / BOLA / LGPD by Design).
-   - **`validators.ts`**: Schemas de validação Zod para cardápio, pedidos e pizzas de 1 a 4 sabores.
-   - **Suítes de Teste Vitest**: 100% dos testes do Degusta foram portados e preservados.
-2. **Interface e Aplicação (`apps/web/src/modules/orders/`)**:
-   - Componentes visuais (`cart-floating-bar`, `checkout-form`, `product-customizer`, `order-tracker`, `operator-order-board`, `menu-manager`, `restaurant-settings-form`).
-   - Contexto de carrinho (`cart-context.tsx`).
-   - Serviços e Server Actions de pedidos, cardápio e gestão.
-3. **Backup Completo (`legacy/degusta-v1/`)**:
-   - O projeto anterior foi arquivado intacto para consulta e rastreabilidade histórica.
+| Camada | Tecnologia | Finalidade |
+| :--- | :--- | :--- |
+| **Framework Web** | [Next.js 16](https://nextjs.org/) (App Router) | Renderização híbrida (SSR/RSC/Server Actions) |
+| **Biblioteca UI** | [React 19](https://react.dev/) + [Tailwind CSS v4](https://tailwindcss.com/) | Interfaces fluidas, componentização e estilos modernos |
+| **Linguagem** | [TypeScript 5.8+](https://www.typescriptlang.org/) | Tipagem estrita de ponta a ponta sem `any` |
+| **Monorepo** | [Turborepo](https://turbo.build/) + [pnpm](https://pnpm.io/) | Orquestração de tarefas, cache inteligente e workspaces |
+| **Banco de Dados** | [Neon PostgreSQL Serverless](https://neon.tech/) | Banco relacional escalável com Connection Pooling |
+| **ORM** | [Prisma ORM 6.4](https://www.prisma.io/) | Modelagem relacional e tipagem de banco |
+| **Autenticação** | [Better Auth](https://www.better-auth.com/) | Autenticação moderna multi-tenant e RBAC |
+| **IA & LLMs** | [Vercel AI SDK](https://sdk.vercel.ai/) + [Google Gemini](https://ai.google.dev/) | Modelos generativos e tool calling para o Agente Concierge |
+| **Validação** | [Zod](https://zod.dev/) | Validação de schemas em todas as bordas do sistema |
+| **Hospedagem** | [Vercel](https://vercel.com/) | Deploy contínuo e Serverless Functions de alta performance |
 
 ---
 
-## 🚀 Como Executar o Projeto
+## 💻 Como Rodar Localmente
 
 ### Pré-requisitos
-- **Node.js**: Versão 20.x ou superior.
-- **pnpm**: Versão 9.x ou superior (caso não tenha instalado globalmente, utilize `npx pnpm` ou `npm install -g pnpm`).
+- **Node.js**: Versão `20.x` ou superior.
+- **pnpm**: Versão `9.x` ou superior (`npm install -g pnpm` ou utilize `npx pnpm`).
 
-### 1. Configurar Variáveis de Ambiente
-Copie o arquivo de exemplo e preencha as credenciais:
+### 1. Clonar o Repositório e Instalar Dependências
 ```bash
-cp .env.example .env
-```
-Principais chaves:
-- `DATABASE_URL`: Conexão PostgreSQL (Neon, Supabase ou local).
-- `GEMINI_API_KEY`: Chave da API Google Gemini para o agente Concierge.
-- `EVOLUTION_API_URL` & `EVOLUTION_API_KEY`: Gateway para WhatsApp (opcional para desenvolvimento local).
-
-### 2. Instalar Dependências
-```bash
+git clone https://github.com/Rilen/concierge.git
+cd concierge
 pnpm install
 ```
 
+### 2. Configurar o Arquivo `.env`
+Copie o arquivo de exemplo na raiz do projeto:
+```bash
+cp .env.example .env
+```
+Preencha as variáveis fundamentais (veja a tabela de variáveis abaixo).
+
 ### 3. Preparar o Banco de Dados
 ```bash
-# Gerar o client Prisma
+# Gerar o cliente Prisma
 pnpm db:generate
 
-# Sincronizar o schema com o banco
+# Sincronizar as tabelas com o banco de dados (Neon ou Postgres local)
 pnpm db:push
 
-# (Opcional) Executar seed inicial
+# (Opcional) Popular o banco com dados de demonstração
 pnpm db:seed
 ```
 
-### 4. Iniciar o Ambiente de Desenvolvimento
+### 4. Iniciar o Servidor de Desenvolvimento
 ```bash
 pnpm dev
 ```
-Acesse:
-- **Portal Concierge & Chat de IA**: [http://localhost:3000](http://localhost:3000)
-- **Cardápio Demo**: [http://localhost:3000/r/pizzaria-demo](http://localhost:3000/r/pizzaria-demo)
-- **Painel de Gestão de Pedidos**: [http://localhost:3000/gestao](http://localhost:3000/gestao)
+
+Acesse no navegador:
+- **Portal Concierge & Chat:** [http://localhost:3000](http://localhost:3000)
+- **Cardápio Demo:** [http://localhost:3000/r/pizzaria-demo](http://localhost:3000/r/pizzaria-demo)
+- **Painel de Gestão de Pedidos:** [http://localhost:3000/gestao](http://localhost:3000/gestao)
+- **Painel Administrativo:** [http://localhost:3000/admin](http://localhost:3000/admin)
+
+---
+
+## 🚀 Como Fazer Deploy (Vercel + Neon)
+
+O projeto está otimizado para deploy na **Vercel** conectado ao **Neon**:
+
+1. **Configurar o Banco no Neon:**
+   - Crie o projeto no console do [Neon](https://console.neon.tech).
+   - Obtenha as duas URLs:
+     - `DATABASE_URL`: Connection string com pooling ativado (porta 6543, `-pooler.neon.tech`).
+     - `DIRECT_URL`: Connection string direta (porta 5432) para operações DDL do Prisma.
+2. **Importar o Projeto na Vercel:**
+   - Conecte o repositório GitHub `Rilen/concierge`.
+   - **Root Directory:** Configure como `apps/web`.
+   - **Framework Preset:** `Next.js` (detectado automaticamente).
+3. **Configurar as Variáveis de Ambiente na Vercel:**
+   - Adicione `DATABASE_URL`, `DIRECT_URL`, `BETTER_AUTH_SECRET`, `APP_URL`, etc. (veja checklist abaixo).
+4. **Deploy Automático:**
+   - Durante a instalação, o hook `postinstall` da raiz e o `prebuild` do `apps/web` garantem a geração do Prisma Client.
+   - O Turborepo compila as dependências e o Next.js constrói as rotas sem conflitos.
+
+> 📖 Para instruções detalhadas passo a passo, consulte o [**Guia Oficial de Deploy (`docs/DEPLOY.md`)**](./docs/DEPLOY.md).
+
+---
+
+## 🔐 Variáveis de Ambiente Principais
+
+| Variável | Obrigatória? | Descrição | Exemplo |
+| :--- | :---: | :--- | :--- |
+| `DATABASE_URL` | **Sim** | URL Pooled do Neon (para runtime das serverless functions) | `postgresql://user:pass@ep-pooler.neon.tech/neondb?sslmode=require` |
+| `DIRECT_URL` | **Sim** | URL Direta do Neon (para migrações e `prisma db push`) | `postgresql://user:pass@ep-direct.neon.tech/neondb?sslmode=require` |
+| `BETTER_AUTH_SECRET` | **Sim** | Segredo criptográfico de 32 bytes para sessões e tokens | `hex-string-de-32-bytes` |
+| `BETTER_AUTH_URL` | **Sim** | URL base do Better Auth | `https://seu-dominio.vercel.app` |
+| `APP_URL` | **Sim** | URL canônica da aplicação em produção | `https://seu-dominio.vercel.app` |
+| `NEXT_PUBLIC_APP_URL` | **Sim** | URL pública exposta ao cliente | `https://seu-dominio.vercel.app` |
+| `GEMINI_API_KEY` | **Sim** | Chave da API Google Gemini para o agente conversacional | `AIzaSy...` |
+| `OPENAI_API_KEY` | Não | Chave OpenAI (provedor alternativo de LLM) | `sk-proj-...` |
+| `ANTHROPIC_API_KEY` | Não | Chave Anthropic Claude (provedor alternativo) | `sk-ant-...` |
+| `EVOLUTION_API_URL` | Não | Endpoint da instância Evolution API para WhatsApp | `https://api.seudominio.com` |
+| `EVOLUTION_API_KEY` | Não | Chave de autenticação da Evolution API | `sua-api-key` |
+| `MERCADO_PAGO_ACCESS_TOKEN` | Não | Token de produção do gateway Mercado Pago | `APP_USR-...` |
 
 ---
 
@@ -146,22 +191,42 @@ Acesse:
 
 | Comando | Descrição |
 | :--- | :--- |
-| `pnpm dev` | Inicia todas as aplicações e pacotes em modo desenvolvimento via Turborepo |
-| `pnpm build` | Executa o build de produção de todo o monorepo com cache incremental |
-| `pnpm test` | Executa todas as suítes de testes unitários (Vitest) |
+| `pnpm dev` | Inicia o ambiente de desenvolvimento de todas as aplicações e pacotes via Turborepo |
+| `pnpm build` | Compila todo o monorepo em modo de produção com cache incremental |
+| `pnpm test` | Executa a suíte de testes unitários com Vitest |
 | `pnpm typecheck` | Validação estática de tipos TypeScript em todos os workspaces |
-| `pnpm lint` | Validação de ESLint em todo o código |
-| `pnpm db:generate` | Gera o cliente do Prisma no workspace `@concierge/database` |
-| `pnpm db:push` | Aplica o schema Prisma diretamente ao banco sem migrações |
+| `pnpm lint` | Validação de ESLint em todos os pacotes |
+| `pnpm db:generate` | Gera os tipos do Prisma Client no pacote `@concierge/database` |
+| `pnpm db:push` | Sincroniza o schema Prisma diretamente com o banco de dados |
 | `pnpm db:studio` | Abre a interface visual do Prisma Studio no navegador |
-| `pnpm db:seed` | Executa o script de seed para criar dados demonstrativos |
+| `pnpm db:seed` | Executa o seed de demonstração (restaurante demo, produtos, categorias) |
 
 ---
 
 ## 🏛️ Governança e Regras de Ouro
-O projeto segue a **Constituição do Projeto** localizada em [`docs/CONSTITUTION.md`](./docs/CONSTITUTION.md).  
-Todo desenvolvimento deve respeitar:
-1. **Segurança e Integridade dos Dados** em 1º lugar.
-2. **Servidor é a Autoridade**: Cálculos e validações nunca confiam no cliente.
-3. **Imutabilidade de Histórico**: Pedidos congelam dados no momento da compra.
-4. **Comissão Justa de 0,5%**: Alíquota padrão do ecossistema.
+
+O projeto é regido por diretrizes estritas documentadas na pasta [`.agent/`](./.agent/):
+
+- 📜 [**Constituição do Projeto (`.agent/CONSTITUTION.md`)**](./.agent/CONSTITUTION.md): Hierarquia inegociável de regras, regras de comissão (0,5%), cálculos estritos em centavos, segurança multi-tenant e protocolo de 9 etapas para agentes de IA.
+- 🧭 [**Resumo de Contexto (`.agent/CONTEXT.md`)**](./.agent/CONTEXT.md): Guia executivo de estado atual e módulos para novos chats e desenvolvedores.
+- 📐 [**Registro de Decisões Técnicas (`.agent/DECISIONS.md`)**](./.agent/DECISIONS.md): ADRs detalhando escolhas de monorepo, banco Neon, autenticação e deploy.
+- 📝 [**Changelog Oficial (`CHANGELOG.md`)**](./CHANGELOG.md): Histórico completo de versões e alterações do projeto.
+
+---
+
+## 📊 Status Atual do Projeto
+
+| Módulo | Status | Observação |
+| :--- | :---: | :--- |
+| **Estrutura Monorepo** | 🟢 Concluído | Turborepo + pnpm workspaces com cache e pipelines configurados |
+| **Módulo de Pedidos (Orders)** | 🟢 Concluído | Portado do legado Degusta, 100% tipado, cálculos em centavos e regras de opções |
+| **Banco de Dados & Schema** | 🟢 Concluído | Prisma unificado e compatível com Neon (Connection Pooling + Direct URL) |
+| **Infraestrutura de Deploy** | 🟢 Concluído | Vercel configurada, caminhos corrigidos, scripts de prebuild e env vars mapeadas |
+| **Governança & Documentação** | 🟢 Concluído | Constituição, Contexto, ADRs, Changelog e README completos |
+| **Agente Concierge (Chat)** | 🟡 Em Andamento | Rotas preparadas; conexão com streaming Gemini e tools em desenvolvimento |
+| **Pagamentos Pix** | 🟡 Em Andamento | Webhooks de confirmação e split financeiro em implementação |
+| **Canal WhatsApp** | ⚪ Planejado | Integração via Evolution API para atendimento conversacional |
+
+---
+
+*Desenvolvido com foco em engenharia de excelência, integridade matemática e segurança.*
