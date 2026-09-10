@@ -14,6 +14,15 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 - Conexão do webhook Pix para confirmação automática de pagamentos (Mercado Pago / Asaas).
 - Integração de canal WhatsApp via Evolution API para atendimento automatizado do Concierge.
 
+## [0.4.1] - 2026-09-10
+
+### Fixed
+- **Tracing de dependências do monorepo na Vercel:** Adicionado `outputFileTracingRoot: path.join(__dirname, "../../")` no [`apps/web/next.config.ts`](./apps/web/next.config.ts) para garantir o empacotamento integral das dependências do monorepo (`packages/*` e virtual store do pnpm) nas Serverless Functions da Vercel.
+- **Compatibilidade do Prisma com Linux RHEL na Vercel:** Adicionado `binaryTargets = ["native", "rhel-openssl-3.0.x"]` nos schemas do Prisma para garantir a compilação do query engine para o ambiente serverless da Vercel.
+
+### Added
+- **Configuração local de framework:** Adicionado [`apps/web/vercel.json`](./apps/web/vercel.json) definindo o framework Next.js diretamente no diretório do app.
+
 ---
 
 ## [0.4.0] - 2026-09-10
